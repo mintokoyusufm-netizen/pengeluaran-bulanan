@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracker Pengeluaran Bulanan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F5F4F0;
+    --surface: #FFFFFF;
+    --surface2: #F0EEE8;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1A1917;
+    --text2: #6B6960;
+    --text3: #9B998F;
+    --green-bg: #EAF3DE;
+    --green-text: #27500A;
+    --red-bg: #FCEBEB;
+    --red-text: #A32D2D;
+    --blue-bg: #E6F1FB;
+    --blue-text: #0C447C;
+    --amber-bg: #FAEEDA;
+    --amber-text: #633806;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 18px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 17px; font-weight: 600; }
+  header span { font-size: 13px; color: var(--text2); }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 12px;
+  }
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .metric {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+  .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; }
+  .metric-val { font-size: 17px; font-weight: 600; }
+  .metric-val.green { color: var(--green-text); }
+  .metric-val.red { color: var(--red-text); }
+  .form-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  input[type=text], input[type=number], select {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 12px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type=text]:focus, input[type=number]:focus, select:focus {
+    border-color: #888;
+  }
+  input[type=text] { flex: 2; min-width: 140px; }
+  input[type=number] { flex: 1; min-width: 110px; }
+  select { flex: 1; min-width: 120px; }
+  .btn {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    border: 0.5px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--text);
+    color: var(--surface);
+    border-color: var(--text);
+  }
+  .btn-primary:hover { background: #333; }
+  .btn-danger { color: var(--red-text); border-color: transparent; background: transparent; padding: 6px 8px; }
+  .btn-danger:hover { background: var(--red-bg); }
+  .err { font-size: 12px; color: var(--red-text); margin-top: 6px; display: none; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 14px 0; }
+  .expense-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .expense-item:last-child { border-bottom: none; }
+  .expense-name { flex: 1; font-size: 14px; }
+  .badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge-solo { background: var(--blue-bg); color: var(--blue-text); }
+  .badge-duo { background: var(--amber-bg); color: var(--amber-text); }
+  .exp-orig { font-size: 12px; color: var(--text3); min-width: 80px; text-align: right; }
+  .exp-amt { font-size: 14px; font-weight: 600; min-width: 90px; text-align: right; }
+  .total-row { display: flex; justify-content: space-between; align-items: center; }
+  .total-label { font-size: 14px; font-weight: 500; color: var(--text2); }
+  .total-val { font-size: 16px; font-weight: 600; }
+  .saldo-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    margin-top: 10px;
+  }
+  .saldo-box.pos { background: var(--green-bg); }
+  .saldo-box.neg { background: var(--red-bg); }
+  .saldo-box .label { font-size: 13px; font-weight: 500; }
+  .saldo-box .val { font-size: 16px; font-weight: 600; }
+  .saldo-box.pos .label, .saldo-box.pos .val { color: var(--green-text); }
+  .saldo-box.neg .label, .saldo-box.neg .val { color: var(--red-text); }
+  .history-item { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .history-item:last-child { border-bottom: none; }
+  .history-top { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; }
+  .history-detail { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.6; }
+  .history-saldo { font-size: 12px; margin-top: 5px; display: flex; gap: 6px; align-items: center; }
+  .empty { font-size: 13px; color: var(--text3); text-align: center; padding: 20px 0; }
+  .save-area { display: flex; justify-content: flex-end; margin-top: 12px; gap: 8px; }
+  .month-selector { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .month-tag {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 0.5px solid var(--border2);
+    background: var(--surface);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .month-tag.active { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .month-tag:hover:not(.active) { background: var(--surface2); }
+  .progress-bar-wrap {
+    background: var(--surface2);
+    border-radius: 6px;
+    height: 8px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    border-radius: 6px;
+    background: var(--text);
+    transition: width 0.4s ease;
+  }
+  .progress-bar.danger { background: var(--red-text); }
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 24px;
+    max-width: 380px;
+    width: 100%;
+  }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .modal p { font-size: 14px; color: var(--text2); margin-bottom: 16px; }
+  .modal .btn-row { display: flex; gap: 8px; justify-content: flex-end; }
+  @media (max-width: 480px) {
+    .metric-grid { grid-template-columns: repeat(3, 1fr); }
+    .metric-val { font-size: 14px; }
+    header h1 { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💸 Tracker Pengeluaran</h1>
+  <span id="hdr-bulan">—</span>
+</header>
+
+<div class="wrap">
+
+  <!-- Pilih / buat bulan -->
+  <div class="card">
+    <p class="section-label">Bulan aktif</p>
+    <div class="month-selector" id="month-selector"></div>
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center;">
+      <input type="month" id="inp-bulan" style="flex:1; min-width:160px;" />
+      <button class="btn btn-primary" onclick="bukaBulan()">Buka / buat bulan</button>
+    </div>
+  </div>
+
+  <!-- Setup saldo -->
+  <div class="card" id="card-saldo" style="display:none;">
+    <p class="section-label">Saldo awal bulan</p>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <span style="font-size:13px; color:var(--text2);">Rp</span>
+      <input type="text" id="inp-saldo" placeholder="Contoh: 1.000.000" inputmode="numeric" style="flex:1; min-width:140px;" oninput="fmtInput(this)" />
+      <button class="btn" onclick="setSaldo()">Simpan saldo</button>
+    </div>
+    <p id="saldo-set-info" style="font-size:12px; color:var(--text2); margin-top:8px; display:none;"></p>
+  </div>
+
+  <!-- Metrik -->
+  <div class="metric-grid" id="metric-area" style="display:none;">
+    <div class="metric">
+      <div class="metric-label">Saldo awal</div>
+      <div class="metric-val" id="m-awal">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total keluar</div>
+      <div class="metric-val red" id="m-total">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Sisa</div>
+      <div class="metric-val green" id="m-sisa">—</div>
+    </div>
+  </div>
+  <div class="card" id="card-progress" style="display:none; padding:14px 18px;">
+    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text2);">
+      <span>Terpakai</span>
+      <span id="prog-pct">0%</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Tambah pengeluaran -->
+  <div class="card" id="card-tambah" style="display:none;">
+    <p class="section-label">Tambah pengeluaran hari ini</p>
+    <div class="form-row">
+      <input type="text" id="inp-nama" placeholder="Nama (misal: Makan siang)" />
+      <input type="text" id="inp-jumlah" placeholder="Jumlah (Rp)" inputmode="numeric" style="flex:1; min-width:110px;" oninput="fmtInput(this)" />
+      <select id="inp-jenis">
+        <option value="solo">Sendiri</option>
+        <option value="duo">Berdua (÷2)</option>
+      </select>
+      <button class="btn btn-primary" onclick="tambah()">+ Tambah</button>
+    </div>
+    <p class="err" id="err-msg"></p>
+  </div>
+
+  <!-- Daftar hari ini -->
+  <div class="card" id="card-list" style="display:none;">
+    <p class="section-label">Pengeluaran hari ini</p>
+    <div id="list-today"></div>
+    <hr class="divider">
+    <div class="total-row">
+      <span class="total-label">Total hari ini (bagianmu)</span>
+      <span class="total-val" id="total-today">Rp 0</span>
+    </div>
+    <div class="saldo-box pos" id="saldo-box">
+      <span class="label">Sisa setelah hari ini</span>
+      <span class="val" id="sisa-today">—</span>
+    </div>
+    <div class="save-area">
+      <button class="btn" onclick="resetHari()">Reset hari ini</button>
+      <button class="btn btn-primary" onclick="simpanHari()">✓ Simpan hari ini</button>
+    </div>
+  </div>
+
+  <!-- Riwayat -->
+  <div class="card" id="card-history" style="display:none;">
+    <p class="section-label">Riwayat harian</p>
+    <div id="list-history"></div>
+    <div class="save-area" style="margin-top:14px; border-top:0.5px solid var(--border); padding-top:12px; justify-content:space-between;">
+      <span style="font-size:12px; color:var(--text3);">Data tersimpan di browser ini</span>
+      <button class="btn" style="color:var(--red-text);" onclick="konfirmReset()">Hapus bulan ini</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal konfirmasi -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3>Hapus data bulan ini?</h3>
+    <p>Semua riwayat bulan ini akan dihapus permanen. Tidak bisa dibatalkan.</p>
+    <div class="btn-row">
+      <button class="btn" onclick="tutupModal()">Batal</button>
+      <button class="btn btn-primary" style="background:var(--red-text); border-color:var(--red-text);" onclick="resetBulan()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'tracker_pengeluaran_v2';
+
+function loadAll() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveAll(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let all = loadAll();
+let activeBulan = null;
+let todayItems = [];
+
+function fmt(n) {
+  if (isNaN(n) || n === null || n === undefined) return 'Rp 0';
+  const rounded = Math.round(n);
+  const abs = Math.abs(rounded);
+  const formatted = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (rounded < 0 ? '-' : '') + 'Rp ' + formatted;
+}
+
+function rawNum(str) {
+  return parseFloat(String(str).replace(/\./g, "")) || 0;
+}
+function fmtInput(el) {
+  const raw = el.value.replace(/\./g, "").replace(/[^0-9]/g, "");
+  if (raw === "") { el.value = ""; return; }
+  el.value = parseInt(raw).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function getBulanLabel(key) {
+  if (!key) return '';
+  const [y, m] = key.split('-');
+  const names = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  return names[parseInt(m)-1] + ' ' + y;
+}
+
+function renderMonthSelector() {
+  const sel = document.getElementById('month-selector');
+  const keys = Object.keys(all).sort().reverse();
+  if (keys.length === 0) {
+    sel.innerHTML = '<span style="font-size:13px; color:var(--text3);">Belum ada bulan. Pilih bulan di bawah.</span>';
+    return;
+  }
+  sel.innerHTML = keys.map(k => `
+    <span class="month-tag ${k === activeBulan ? 'active' : ''}" onclick="pilihBulan('${k}')">${getBulanLabel(k)}</span>
+  `).join('');
+}
+
+function bukaBulan() {
+  const v = document.getElementById('inp-bulan').value;
+  if (!v) return;
+  if (!all[v]) all[v] = { saldo: 0, saldoSet: false, history: [] };
+  saveAll(all);
+  pilihBulan(v);
+}
+
+function pilihBulan(key) {
+  activeBulan = key;
+  todayItems = [];
+  renderAll();
+}
+
+function setSaldo() {
+  if (!activeBulan) return;
+  const v = rawNum(document.getElementById('inp-saldo').value);
+  if (!v || v <= 0) return;
+  all[activeBulan].saldo = v;
+  all[activeBulan].saldoSet = true;
+  saveAll(all);
+  renderAll();
+}
+
+function tambah() {
+  const nama = document.getElementById('inp-nama').value.trim();
+  const jumlah = rawNum(document.getElementById('inp-jumlah').value);
+  const jenis = document.getElementById('inp-jenis').value;
+  const err = document.getElementById('err-msg');
+  if (!nama) { err.textContent = 'Nama wajib diisi.'; err.style.display = 'block'; return; }
+  if (!jumlah || jumlah <= 0) { err.textContent = 'Jumlah harus lebih dari 0.'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  const bayar = jenis === 'duo' ? jumlah / 2 : jumlah;
+  todayItems.push({ nama, jumlah, jenis, bayar });
+  document.getElementById('inp-nama').value = '';
+  document.getElementById('inp-jumlah').value = '';
+  renderAll();
+}
+
+function hapusItem(i) {
+  todayItems.splice(i, 1);
+  renderAll();
+}
+
+function resetHari() {
+  todayItems = [];
+  renderAll();
+}
+
+function simpanHari() {
+  if (!activeBulan || todayItems.length === 0) return;
+  const d = all[activeBulan];
+  const totalKeluar = d.history.reduce((s, h) => s + h.total, 0);
+  const saldoBerjalan = d.saldo - totalKeluar;
+  const totalHari = todayItems.reduce((s, e) => s + e.bayar, 0);
+  const dayNum = d.history.length + 1;
+  d.history.push({
+    label: 'Hari ke-' + dayNum,
+    tanggal: new Date().toLocaleDateString('id-ID', { day:'numeric', month:'short' }),
+    items: [...todayItems],
+    total: totalHari,
+    saldoSebelum: saldoBerjalan,
+    saldoSesudah: saldoBerjalan - totalHari
+  });
+  saveAll(all);
+  todayItems = [];
+  renderAll();
+}
+
+function konfirmReset() { document.getElementById('modal-overlay').classList.add('open'); }
+function tutupModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function resetBulan() {
+  if (!activeBulan) return;
+  delete all[activeBulan];
+  saveAll(all);
+  activeBulan = null;
+  todayItems = [];
+  tutupModal();
+  renderAll();
+}
+
+function renderAll() {
+  renderMonthSelector();
+  const hasActive = !!activeBulan && !!all[activeBulan];
+  const d = hasActive ? all[activeBulan] : null;
+
+  document.getElementById('hdr-bulan').textContent = hasActive ? getBulanLabel(activeBulan) : '—';
+  document.getElementById('card-saldo').style.display = hasActive ? 'block' : 'none';
+  document.getElementById('metric-area').style.display = (hasActive && d.saldoSet) ? 'grid' : 'none';
+  document.getElementById('card-progress').style.display = (hasActive && d.saldoSet) ? 'block' : 'none';
+  document.getElementById('card-tambah').style.display = (hasActive && d.saldoSet) ? 'block' : 'none';
+  document.getElementById('card-list').style.display = (hasActive && d.saldoSet) ? 'block' : 'none';
+  document.getElementById('card-history').style.display = (hasActive && d.saldoSet) ? 'block' : 'none';
+
+  if (hasActive && d.saldoSet) {
+    document.getElementById('inp-saldo').value = d.saldo ? Math.round(d.saldo).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+    document.getElementById('saldo-set-info').style.display = 'block';
+    document.getElementById('saldo-set-info').textContent = 'Saldo terpasang: ' + fmt(d.saldo);
+
+    const totalKeluar = d.history.reduce((s, h) => s + h.total, 0);
+    const totalHariIni = todayItems.reduce((s, e) => s + e.bayar, 0);
+    const saldoBerjalan = d.saldo - totalKeluar;
+    const sisaSetelah = saldoBerjalan - totalHariIni;
+    const totalAll = totalKeluar + totalHariIni;
+    const pct = d.saldo > 0 ? Math.min(100, Math.round((totalAll / d.saldo) * 100)) : 0;
+
+    document.getElementById('m-awal').textContent = fmt(d.saldo);
+    document.getElementById('m-total').textContent = fmt(totalAll);
+    const mSisa = document.getElementById('m-sisa');
+    mSisa.textContent = fmt(sisaSetelah);
+    mSisa.className = 'metric-val ' + (sisaSetelah >= 0 ? 'green' : 'red');
+
+    document.getElementById('prog-pct').textContent = pct + '%';
+    const bar = document.getElementById('progress-bar');
+    bar.style.width = pct + '%';
+    bar.className = 'progress-bar' + (pct >= 90 ? ' danger' : '');
+
+    // List today
+    const lt = document.getElementById('list-today');
+    if (todayItems.length === 0) {
+      lt.innerHTML = '<p class="empty">Belum ada pengeluaran. Tambah di atas.</p>';
+    } else {
+      lt.innerHTML = todayItems.map((e, i) => `
+        <div class="expense-item">
+          <span class="expense-name">${e.nama}</span>
+          <span class="badge ${e.jenis === 'duo' ? 'badge-duo' : 'badge-solo'}">${e.jenis === 'duo' ? 'Berdua' : 'Sendiri'}</span>
+          ${e.jenis === 'duo' ? `<span class="exp-orig">${fmt(e.jumlah)} ÷2</span>` : '<span class="exp-orig"></span>'}
+          <span class="exp-amt">${fmt(e.bayar)}</span>
+          <button class="btn btn-danger" onclick="hapusItem(${i})" aria-label="Hapus">✕</button>
+        </div>
+      `).join('');
+    }
+    document.getElementById('total-today').textContent = fmt(totalHariIni);
+
+    const sb = document.getElementById('saldo-box');
+    document.getElementById('sisa-today').textContent = fmt(sisaSetelah);
+    sb.className = 'saldo-box ' + (sisaSetelah >= 0 ? 'pos' : 'neg');
+
+    // History
+    const lh = document.getElementById('list-history');
+    if (d.history.length === 0) {
+      lh.innerHTML = '<p class="empty">Belum ada hari yang disimpan.</p>';
+    } else {
+      lh.innerHTML = d.history.slice().reverse().map(h => `
+        <div class="history-item">
+          <div class="history-top">
+            <span>${h.label} <span style="font-weight:400; color:var(--text2); font-size:12px;">${h.tanggal || ''}</span></span>
+            <span style="color:var(--red-text);">−${fmt(h.total)}</span>
+          </div>
+          <div class="history-detail">${h.items.map(e => `${e.nama} <strong>${fmt(e.bayar)}</strong>${e.jenis==='duo'?' <em>(berdua)</em>':''}`).join(' &bull; ')}</div>
+          <div class="history-saldo">
+            <span style="color:var(--text3);">Saldo</span>
+            <span>${fmt(h.saldoSebelum)}</span>
+            <span style="color:var(--text3);">→</span>
+            <span style="font-weight:600; color:${h.saldoSesudah>=0?'var(--green-text)':'var(--red-text)'};">${fmt(h.saldoSesudah)}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  } else if (hasActive) {
+    document.getElementById('inp-saldo').value = d.saldo ? Math.round(d.saldo).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+    document.getElementById('saldo-set-info').style.display = 'none';
+  }
+}
+
+// Init: set default bulan ke bulan sekarang
+const now = new Date();
+const defaultBulan = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+document.getElementById('inp-bulan').value = defaultBulan;
+
+// Buka bulan terakhir otomatis kalau ada
+const keys = Object.keys(all).sort();
+if (keys.length > 0) activeBulan = keys[keys.length - 1];
+
+renderAll();
+</script>
+</body>
+</html>
