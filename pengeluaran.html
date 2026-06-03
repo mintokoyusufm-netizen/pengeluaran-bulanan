@@ -440,6 +440,19 @@ select:focus{border-color:var(--accent);}
     </div>
   </div>
 
+  <!-- TAGIHAN -->
+  <div class="card" id="card-tagihan" style="display:none;">
+    <div class="card-title"><span class="dot" style="background:var(--amber);"></span>Tagihan orang kedua</div>
+    <div style="background:var(--amber-bg);border:1px solid rgba(251,176,64,0.25);border-radius:var(--r-sm);padding:16px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:12px;color:var(--amber);font-weight:500;margin-bottom:4px;">Total hutang bulan ini</div>
+        <div id="tagihan-total" style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--amber);">Rp 0</div>
+      </div>
+      <div style="font-size:28px;">🧾</div>
+    </div>
+    <div id="tagihan-list"></div>
+  </div>
+
   <!-- RIWAYAT -->
   <div class="card" id="card-history" style="display:none;">
     <div class="card-title"><span class="dot"></span>Riwayat harian</div>
@@ -532,7 +545,9 @@ function tambah(){
   if(!nama){err.textContent='Nama pengeluaran wajib diisi.';err.style.display='block';return;}
   if(!jumlah||jumlah<=0){err.textContent='Jumlah harus lebih dari 0.';err.style.display='block';return;}
   err.style.display='none';
-  todayItems.push({nama,jumlah,jenis,bayar:jenis==='duo'?jumlah/2:jumlah});
+  // berdua: saldo dikurangi penuh, hutang = jumlah/2
+  const hutang=jenis==='duo'?jumlah/2:0;
+  todayItems.push({nama,jumlah,jenis,bayar:jumlah,hutang});
   document.getElementById('inp-nama').value='';
   document.getElementById('inp-jumlah').value='';
   renderAll();
@@ -547,10 +562,11 @@ function simpanHari(){
   const totalKeluar=d.history.reduce((s,h)=>s+h.total,0);
   const saldoBerjalan=d.saldo-totalKeluar;
   const totalHari=todayItems.reduce((s,e)=>s+e.bayar,0);
+  const totalHutangHari=todayItems.reduce((s,e)=>s+(e.hutang||0),0);
   d.history.push({
     label:'Hari ke-'+(d.history.length+1),
     tanggal:new Date().toLocaleDateString('id-ID',{day:'numeric',month:'short'}),
-    items:[...todayItems],total:totalHari,
+    items:[...todayItems],total:totalHari,totalHutang:totalHutangHari,
     saldoSebelum:saldoBerjalan,saldoSesudah:saldoBerjalan-totalHari
   });
   saveAll(all);todayItems=[];renderAll();
@@ -579,6 +595,7 @@ function renderAll(){
   show('card-tambah',ok&&d.saldoSet);
   show('card-list',ok&&d.saldoSet);
   show('card-history',ok&&d.saldoSet);
+  if(!(ok&&d.saldoSet))show('card-tagihan',false);
 
   if(ok){
     // saldo input
@@ -596,6 +613,9 @@ function renderAll(){
   if(ok&&d.saldoSet){
     const totalKeluar=d.history.reduce((s,h)=>s+h.total,0);
     const totalHariIni=todayItems.reduce((s,e)=>s+e.bayar,0);
+    const totalHutangHariIni=todayItems.reduce((s,e)=>s+(e.hutang||0),0);
+    const totalHutangHistory=d.history.reduce((s,h)=>s+(h.totalHutang||0),0);
+    const totalHutangAll=totalHutangHistory+totalHutangHariIni;
     const saldoBerjalan=d.saldo-totalKeluar;
     const sisaSetelah=saldoBerjalan-totalHariIni;
     const totalAll=totalKeluar+totalHariIni;
@@ -619,14 +639,37 @@ function renderAll(){
       :todayItems.map((e,i)=>`
         <div class="expense-item">
           <div class="exp-icon">${getEmoji(e.nama)}</div>
-          <span class="expense-name">${e.nama}</span>
+          <div style="flex:1;min-width:0;">
+            <div class="expense-name">${e.nama}</div>
+            ${e.jenis==='duo'?`<div style="font-size:11px;color:var(--amber);margin-top:2px;">+piutang ${fmt(e.hutang)}</div>`:''}
+          </div>
           <span class="badge ${e.jenis==='duo'?'badge-duo':'badge-solo'}">${e.jenis==='duo'?'Berdua':'Sendiri'}</span>
-          ${e.jenis==='duo'?`<span class="exp-orig">${fmt(e.jumlah)}÷2</span>`:''}
           <span class="exp-amt">−${fmt(e.bayar)}</span>
           <button class="btn btn-ghost" onclick="hapusItem(${i})" style="padding:6px 8px;font-size:16px;" aria-label="Hapus">×</button>
         </div>`).join('');
 
     document.getElementById('total-today').textContent=fmt(totalHariIni);
+    // tagihan
+    const tagEl=document.getElementById('tagihan-total');
+    const tagihanBox=document.getElementById('card-tagihan');
+    tagihanBox.style.display='block';
+    tagEl.textContent=fmt(totalHutangAll);
+    // render detail tagihan
+    const tagihanList=document.getElementById('tagihan-list');
+    const allHutangItems=[
+      ...d.history.flatMap(h=>h.items.filter(e=>e.jenis==='duo').map(e=>({...e,tanggal:h.tanggal,label:h.label}))),
+      ...todayItems.filter(e=>e.jenis==='duo').map(e=>({...e,tanggal:'Hari ini',label:'Hari ini'}))
+    ];
+    tagihanList.innerHTML=!allHutangItems.length
+      ?'<p class="empty">Belum ada tagihan.</p>'
+      :allHutangItems.map(e=>`
+        <div class="history-item">
+          <div class="hist-top">
+            <span style="font-size:13px;">${getEmoji(e.nama)} ${e.nama} <span style="color:var(--text3);font-size:11px;">${e.tanggal||''}</span></span>
+            <span style="color:var(--amber);font-weight:600;">${fmt(e.hutang)}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Total ${fmt(e.jumlah)} → bagian dia ${fmt(e.hutang)}</div>
+        </div>`).join('');
     const sb=document.getElementById('sisa-box');
     document.getElementById('sisa-today').textContent=fmt(sisaSetelah);
     sb.className='sisa-box '+(sisaSetelah>=0?'pos':'neg');
@@ -641,7 +684,7 @@ function renderAll(){
             <span class="hist-day">${h.label}<span class="hist-date">${h.tanggal||''}</span></span>
             <span class="hist-minus">−${fmt(h.total)}</span>
           </div>
-          <div class="hist-items">${h.items.map(e=>`${getEmoji(e.nama)} ${e.nama} <strong style="color:var(--text)">${fmt(e.bayar)}</strong>${e.jenis==='duo'?' <span style="color:var(--amber);font-size:11px;">(berdua)</span>':''}`).join(' &nbsp;·&nbsp; ')}</div>
+          <div class="hist-items">${h.items.map(e=>`${getEmoji(e.nama)} ${e.nama} <strong style="color:var(--text)">${fmt(e.bayar)}</strong>${e.jenis==='duo'?` <span style="color:var(--amber);font-size:11px;">(piutang ${fmt(e.hutang)})</span>`:''}`).join(' &nbsp;·&nbsp; ')}</div>
           <div class="hist-flow">
             <span style="color:var(--text2);font-weight:500;">${fmt(h.saldoSebelum)}</span>
             <span class="arrow">→</span>
